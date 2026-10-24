@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Next Goal · Καταγραφή</title>
+<style>
+  :root{
+    --bg:#080b10;--turf:#0c1c14;--panel:#111721;--panel2:#19212d;--line:#242f3d;
+    --ink:#e9eff5;--dim:#7a8898;--accent:#4ea1d3;--yes:#3fb68b;--mid:#e8b84e;--no:#c85a54;
+    --mono:ui-monospace,'Cascadia Code',Consolas,monospace;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:radial-gradient(ellipse 120% 55% at 50% 0%,var(--turf),var(--bg) 55%);
+    color:var(--ink);font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;line-height:1.5;min-height:100vh}
+  .wrap{max-width:640px;margin:0 auto;padding:16px}
+  h1{margin:0 0 2px;font-size:15px;font-weight:700;letter-spacing:.3px}
+  .sub{font-size:11.5px;color:var(--dim);margin-bottom:14px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;margin-bottom:14px;overflow:hidden}
+  .card h2{margin:0;padding:9px 14px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;
+    color:var(--dim);border-bottom:1px solid var(--line);background:var(--panel2);display:flex;justify-content:space-between;align-items:center}
+  .pad{padding:13px}
+  .tag{font-size:10px;padding:2px 7px;border-radius:20px;background:var(--panel);border:1px solid var(--line);color:var(--dim);font-weight:600;text-transform:none;letter-spacing:0}
+  .tag:empty{display:none}
+  textarea{width:100%;min-height:76px;background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:8px;
+    padding:10px;font:12.5px var(--mono);resize:vertical}
+  input{background:var(--bg);border:1px solid var(--line);color:var(--ink);border-radius:7px;padding:9px;font:600 15px var(--mono);
+    width:100%;text-align:center;min-width:0}
+  input.text{font:600 13px system-ui;text-align:left}
+  input:focus,textarea:focus{outline:2px solid var(--accent);outline-offset:-1px}
+  label{display:block;font-size:11px;color:var(--dim);margin-bottom:4px}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:11px}
+  .grid3{display:grid;grid-template-columns:1fr auto 1fr;gap:8px;align-items:end;margin-top:11px}
+  .grid3 .dash{padding-bottom:10px;color:var(--dim)}
+  .full{grid-column:1/-1}
+  button{font:600 13px system-ui;border:1px solid var(--line);background:var(--panel2);color:var(--ink);padding:10px 14px;
+    border-radius:8px;cursor:pointer}
+  button:disabled{opacity:.4;cursor:not-allowed}
+  button.wide{width:100%}
+  button.primary{background:var(--accent);border-color:var(--accent);color:#080b10}
+  button.save{background:var(--yes);border-color:var(--yes);color:#080b10}
+  button.danger{background:rgba(200,90,84,.14);border-color:var(--no);color:#f0b3b0}
+  .stack{display:flex;flex-direction:column;gap:8px;margin-top:11px}
+  .status{font-size:11.5px;color:var(--dim);margin-top:7px;min-height:15px;font-family:var(--mono)}
+  .readout{margin-top:12px;border:1px solid var(--line);border-radius:10px;background:var(--panel2);padding:12px;display:none}
+  .readout.show{display:block}
+  .ro-row{display:flex;justify-content:space-between;align-items:baseline;font-size:13px;padding:3px 0}
+  .ro-row span:first-child{color:var(--dim)}
+  .ro-row b{font-family:var(--mono)}
+  .group{display:inline-block;padding:3px 10px;border-radius:20px;font:700 13px var(--mono)}
+  .g-fresh{background:rgba(232,184,78,.16);color:var(--mid);border:1px solid rgba(232,184,78,.5)}
+  .g-old{background:rgba(78,161,211,.14);color:var(--accent);border:1px solid rgba(78,161,211,.5)}
+  .warn{margin-top:10px;font-size:12px;padding:8px 10px;border-radius:8px;display:none;line-height:1.4}
+  .warn.show{display:block}
+  .warn.bad{background:rgba(200,90,84,.12);border:1px solid rgba(200,90,84,.45);color:#f0b3b0}
+  .warn.soft{background:rgba(232,184,78,.1);border:1px solid rgba(232,184,78,.4);color:#e8cf9a}
+  .note{font-size:11px;color:var(--dim);margin-top:8px}
+  .counts{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .count{border:1px solid var(--line);border-radius:9px;padding:9px 11px;background:var(--panel2)}
+  .count .lab{font-size:11px;color:var(--dim)}
+  .count .num{font:700 20px var(--mono)}
+  .count .num small{font-size:12px;color:var(--dim);font-weight:500}
+  .bar{height:5px;border-radius:3px;background:var(--bg);overflow:hidden;margin-top:6px}
+  .bar i{display:block;height:100%}
+  .row{border:1px solid var(--line);border-radius:9px;padding:9px 11px;margin-bottom:7px;background:var(--panel2)}
+  .row.pending{border-color:rgba(232,184,78,.55)}
+  .row-top{display:flex;justify-content:space-between;gap:8px;font-size:12.5px}
+  .row-top .teams{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .row-top .x{color:var(--dim);cursor:pointer;padding:0 4px;flex-shrink:0}
+  .row-meta{font:11.5px var(--mono);color:var(--dim);margin-top:2px}
+  .row-act{display:flex;gap:6px;margin-top:8px;align-items:center}
+  .row-act button{padding:6px 12px;font-size:12px;flex:1}
+  .row-act .res{font:700 12px var(--mono)}
+  .empty{padding:12px;text-align:center;color:var(--dim);font-size:12px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Next Goal · Καταγραφή</h1>
+  <div class="sub">Ένα screenshot ανά ματς με ανοιγμένο σκορ. Συλλογή δεδομένων για την υπόθεση «γκολ πριν από ≤12′».</div>
+
+  <div class="card">
+    <h2>Νέα καταγραφή</h2>
+    <div class="pad">
+      <textarea id="paste" placeholder="Επικόλλησε το κείμενο από Live Text (γεμίζει λίγκα, ομάδες, σκορ και αποδόσεις 1ου ημιχρόνου)"></textarea>
+      <div class="stack" style="margin-top:8px"><button class="primary wide" id="parseBtn">Ανάγνωση κειμένου</button></div>
+      <div class="status" id="status"></div>
+
+      <div class="grid">
+        <div class="full"><label for="league">Λίγκα</label><input class="text" id="league"></div>
+        <div><label for="home">Γηπεδούχος</label><input class="text" id="home"></div>
+        <div><label for="away">Φιλοξενούμενος</label><input class="text" id="away"></div>
+      </div>
+      <div class="grid3">
+        <div><label for="gh">Γκολ γηπ.</label><input id="gh" inputmode="numeric"></div>
+        <div class="dash">–</div>
+        <div><label for="ga">Γκολ φιλ.</label><input id="ga" inputmode="numeric"></div>
+      </div>
+      <div class="grid">
+        <div><label for="bmin">Λεπτό τώρα</label><input id="bmin" inputmode="numeric" placeholder="30"></div>
+        <div><label for="lgmin">Λεπτό τελευταίου γκολ</label><input id="lgmin" inputmode="numeric" placeholder="19"></div>
+        <div><label for="oover">Απόδοση over</label><input id="oover" inputmode="decimal" placeholder="2,05"></div>
+        <div><label for="ounder">Απόδοση under</label><input id="ounder" inputmode="decimal" placeholder="1,75"></div>
+      </div>
+
+      <div class="readout" id="readout">
+        <div class="ro-row"><span>Λεπτά από το γκολ</span><b id="roSince">–</b></div>
+        <div class="ro-row"><span>Γκρουπ</span><span id="roGroup"></span></div>
+        <div class="ro-row"><span>Αγορά: γκολ ως το ημίχρονο</span><b id="roOver">–</b></div>
+        <div class="ro-row"><span>Αγορά: χωρίς γκολ</span><b id="roUnder">–</b></div>
+        <div class="ro-row"><span>Περιθώριο bookie</span><b id="roMargin">–</b></div>
+        <div class="note">Ενημερωτικό. Δεν είναι σύσταση στοιχήματος μέχρι να επιβεβαιωθεί η υπόθεση.</div>
+      </div>
+      <div class="warn" id="warn"></div>
+
+      <div class="stack"><button class="save wide" id="saveBtn" disabled>Αποθήκευση</button></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Πρόοδος <span class="tag" id="progTag"></span></h2>
+    <div class="pad">
+      <div class="counts">
+        <div class="count"><div class="lab">Γκολ ≤12′ πριν</div><div class="num" id="cFresh">0 <small>/ 200</small></div><div class="bar"><i id="bFresh" style="background:var(--mid);width:0"></i></div></div>
+        <div class="count"><div class="lab">Γκολ &gt;12′ πριν</div><div class="num" id="cOld">0 <small>/ 200</small></div><div class="bar"><i id="bOld" style="background:var(--accent);width:0"></i></div></div>
+      </div>
+      <div class="note" id="progNote"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Καταγραφές <span class="tag" id="dsCount">0</span></h2>
+    <div class="pad">
+      <div id="list"><div class="empty">Καμία καταγραφή.</div></div>
+      <div class="stack">
+        <button class="primary wide" id="copyAll">Αντιγραφή ολοκληρωμένων (για Sheets)</button>
+        <button class="danger wide" id="clearData">Καθαρισμός δεδομένων</button>
+      </div>
+      <div class="status" id="dsStatus"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const $ = s => document.querySelector(s);
+const LS_KEY = 'nextgoal_v2_rows';
+const CUTOFF = 12, B_LO = 24, B_HI = 36, TARGET = 200, INTERIM = 100;
+const HEADER = ['match_id','date','league','home_team','away_team','goals_h','goals_a','last_goal_min','B_min',
+  'since_goal','group','odds_over','odds_under','p_mkt_over','overround','goal_next'];
+const DECIMAL = new Set(['odds_over','odds_under','p_mkt_over','overround']);
+let rows = [];
+
+function load(){ try{ const r = localStorage.getItem(LS_KEY); rows = r ? JSON.parse(r) : []; }catch(e){ rows = []; } }
+function store(){ try{ localStorage.setItem(LS_KEY, JSON.stringify(rows)); }catch(e){} }
+const num = v => { const s = String(v ?? '').trim().replace(',', '.'); return s === '' ? NaN : Number(s); };
+const pct = x => (x * 100).toFixed(1).replace('.', ',') + '%';
+const localDate = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+// ---------- paste parser: league, teams, score, 1st-half goal line odds ----------
+function parseText(raw){
+  const lines = raw.split('\n').map(l => l.trim()).filter(Boolean);
+  if(!lines.length) return null;
+  const out = {};
+  // league = first line with a real word (skips the phone status bar: "00:45", "•00", "C")
+  const li = lines.findIndex(l => (l.match(/[A-Za-zΑ-Ωα-ωΆ-ώ]/g) || []).length >= 4);
+  if(li < 0) return null;
+  out.league = lines[li];
+  const statsIdx = lines.findIndex((l, i) => i > li && /^(Stats|Στατιστικά)(\s|$)/i.test(l));
+  const block = lines.slice(li + 1, statsIdx > 0 ? statsIdx : Math.min(lines.length, li + 6));
+  const cl = s => s.replace(/\s+/g, ' ').replace(/^[\s.\-']+|[\s.\-']+$/g, '');
+  const dg = c => c === 'O' ? 0 : +c;
+  const scoreRe = /(?:^|\s)([0-9O])\s+([0-9O])(?:\s|$)/;
+  let si = -1, mm = null;
+  for(let i = 0; i < block.length; i++){ const m = block[i].match(scoreRe); if(m){ si = i; mm = m; break; } }
+  if(mm){                                            // "Home 1 2 Away"
+    const at = block[si].indexOf(mm[0]);
+    out.gh = dg(mm[1]); out.ga = dg(mm[2]);
+    out.home = cl([block.slice(0, si).join(' '), block[si].slice(0, at)].join(' '));
+    out.away = cl([block[si].slice(at + mm[0].length), block.slice(si + 1).join(' ')].join(' '));
+  } else {
+    const two = block.findIndex(l => /^[0-9O]{2}$/.test(l));        // "20" on its own line
+    const singles = block.map((l, i) => /^[0-9O]$/.test(l) ? i : -1).filter(i => i >= 0);  // "1" ... "2" split
+    if(two >= 0){
+      out.gh = dg(block[two][0]); out.ga = dg(block[two][1]);
+      out.home = cl(block.slice(0, two).join(' ')); out.away = cl(block.slice(two + 1).join(' '));
+    } else if(singles.length >= 2){
+      const [a, b] = singles;
+      out.gh = dg(block[a]); out.ga = dg(block[b]);
+      out.home = cl(block.slice(0, b).filter((_, i) => i !== a).join(' '));
+      out.away = cl(block.slice(b + 1).join(' '));
+    }
+  }
+  // 1st half goal line: "1st Half Goal Line (1-2)" -> score check + line = goals + 0.5
+  const gi = lines.findIndex(l => /1st Half Goal Line/i.test(l));
+  if(gi >= 0){
+    const sm = lines[gi].match(/\((\d+)\s*[-–]\s*(\d+)\)/);
+    if(sm){ out.gh = +sm[1]; out.ga = +sm[2]; out.scoreFromLine = true; }
+    const rest = lines.slice(gi + 1);
+    const labels = rest.filter(l => /^\d+\.\d(\s*,\s*\d+\.\d)?$/.test(l));
+    const odds = rest.filter(l => /^\d{1,2}[.,]\d{2,3}$/.test(l)).map(l => +l.replace(',', '.'));
+    const n = labels.length, plaus = (o, u) => { const s = 1 / o + 1 / u; return s > 0.98 && s < 1.15; };
+    let pairs = null;
+    if(n && odds.length >= 2 * n){
+      const col = labels.map((_, i) => [odds[i], odds[n + i]]);        // Live Text: over column, then under column
+      const row = labels.map((_, i) => [odds[2 * i], odds[2 * i + 1]]); // or row by row
+      if(col.every(p => plaus(...p))) pairs = col; else if(row.every(p => plaus(...p))) pairs = row;
+    }
+    if(Number.isFinite(out.gh) && Number.isFinite(out.ga)){
+      out.target = (out.gh + out.ga + 0.5).toFixed(1);
+      const k = labels.indexOf(out.target);
+      if(pairs && k >= 0){ out.over = pairs[k][0]; out.under = pairs[k][1]; }
+      out.lineFound = k >= 0; out.oddsOk = !!pairs;
+    }
+  }
+  return out;
+}
+$('#parseBtn').onclick = () => {
+  const r = parseText($('#paste').value);
+  if(!r){ $('#status').textContent = 'Δεν υπάρχει κείμενο.'; return; }
+  const msg = [];
+  $('#league').value = r.league || '';
+  if(r.home !== undefined){ $('#home').value = r.home; $('#away').value = r.away; }
+  if(Number.isFinite(r.gh)){ $('#gh').value = r.gh; $('#ga').value = r.ga; msg.push(`σκορ ${r.gh}-${r.ga}`); }
+  if(r.over){
+    $('#oover').value = String(r.over).replace('.', ','); $('#ounder').value = String(r.under).replace('.', ',');
+    msg.push(`γραμμή ${r.target}: over ${String(r.over).replace('.', ',')} / under ${String(r.under).replace('.', ',')}`);
+  } else if(r.target && !r.lineFound){
+    msg.push(`δεν βρέθηκε η γραμμή ${r.target} (μόνο αυτή μετράει), γράψε τις αποδόσεις με το χέρι αν υπάρχει`);
+  } else if(r.target && !r.oddsOk){
+    msg.push('οι αποδόσεις δεν διαβάστηκαν καθαρά, γράψ\' τες με το χέρι');
+  } else if(r.target === undefined && Number.isFinite(r.gh)){
+    msg.push('δεν βρέθηκαν αποδόσεις 1ου ημιχρόνου');
+  }
+  $('#status').textContent = 'Διαβάστηκαν: λίγκα' + (r.home !== undefined ? ', ομάδες' : '') + (msg.length ? ', ' + msg.join(', ') : '') + '. Έλεγξέ τα.';
+  update();
+};
+
+// ---------- live readout + validation ----------
+function current(){
+  const gh = num($('#gh').value), ga = num($('#ga').value), b = num($('#bmin').value), lg = num($('#lgmin').value);
+  const oo = num($('#oover').value), ou = num($('#ounder').value);
+  return {gh, ga, b, lg, oo, ou};
+}
+function update(){
+  const c = current(), warn = $('#warn'), ro = $('#readout');
+  const msgs = []; let hard = false;
+  const scoreOk = Number.isFinite(c.gh) && Number.isFinite(c.ga);
+  if(scoreOk && c.gh + c.ga === 0){ msgs.push('Το σκορ είναι 0-0. Καταγράφουμε μόνο ματς με ανοιγμένο σκορ.'); hard = true; }
+  if(Number.isFinite(c.b) && Number.isFinite(c.lg) && c.lg > c.b){ msgs.push('Το λεπτό του γκολ είναι μετά το τωρινό λεπτό.'); hard = true; }
+  if((Number.isFinite(c.oo) && c.oo <= 1) || (Number.isFinite(c.ou) && c.ou <= 1)){ msgs.push('Οι αποδόσεις πρέπει να είναι πάνω από 1.'); hard = true; }
+  const soft = [];
+  if(Number.isFinite(c.b) && (c.b < B_LO || c.b > B_HI)) soft.push(`Το λεπτό ${c.b}′ είναι εκτός εύρους ${B_LO}′–${B_HI}′.`);
+  const showRo = Number.isFinite(c.b) && Number.isFinite(c.lg) && c.lg <= c.b;
+  ro.classList.toggle('show', showRo);
+  if(showRo){
+    const since = c.b - c.lg, fresh = since <= CUTOFF;
+    $('#roSince').textContent = since + '′';
+    $('#roGroup').innerHTML = `<span class="group ${fresh ? 'g-fresh' : 'g-old'}">${fresh ? '≤12′' : '>12′'}</span>`;
+    if(Number.isFinite(c.oo) && Number.isFinite(c.ou) && c.oo > 1 && c.ou > 1){
+      const io = 1 / c.oo, iu = 1 / c.ou, s = io + iu;
+      $('#roOver').textContent = pct(io / s); $('#roUnder').textContent = pct(iu / s); $('#roMargin').textContent = pct(s - 1);
+    } else { $('#roOver').textContent = $('#roUnder').textContent = $('#roMargin').textContent = '–'; }
+  }
+  if(hard){ warn.className = 'warn bad show'; warn.textContent = msgs.join(' '); }
+  else if(soft.length){ warn.className = 'warn soft show'; warn.textContent = soft.join(' '); }
+  else { warn.className = 'warn'; warn.textContent = ''; }
+  const complete = scoreOk && [c.b, c.lg, c.oo, c.ou].every(Number.isFinite);
+  $('#saveBtn').disabled = !complete || hard;
+}
+['gh','ga','bmin','lgmin','oover','ounder'].forEach(id => $('#' + id).addEventListener('input', update));
+
+$('#saveBtn').onclick = () => {
+  const c = current(), since = c.b - c.lg, io = 1 / c.oo, iu = 1 / c.ou;
+  rows.push({
+    match_id: 'M' + Date.now(), date: localDate(),
+    league: $('#league').value.trim(), home_team: $('#home').value.trim(), away_team: $('#away').value.trim(),
+    goals_h: c.gh, goals_a: c.ga, last_goal_min: c.lg, B_min: c.b, since_goal: since,
+    group: since <= CUTOFF ? 'le12' : 'gt12', odds_over: c.oo, odds_under: c.ou,
+    p_mkt_over: +(io / (io + iu)).toFixed(4), overround: +(io + iu - 1).toFixed(4), goal_next: null
+  });
+  store();
+  ['paste','league','home','away','gh','ga','bmin','lgmin','oover','ounder'].forEach(id => $('#' + id).value = '');
+  $('#status').textContent = 'Αποθηκεύτηκε. Συμπλήρωσε την έκβαση στο τέλος του ημιχρόνου.';
+  update(); render();
+};
+
+// ---------- list, progress ----------
+function render(){
+  const done = rows.filter(r => r.goal_next !== null);
+  const nf = done.filter(r => r.group === 'le12').length, no = done.length - nf;
+  $('#cFresh').innerHTML = `${nf} <small>/ ${TARGET}</small>`; $('#cOld').innerHTML = `${no} <small>/ ${TARGET}</small>`;
+  $('#bFresh').style.width = Math.min(100, nf / TARGET * 100) + '%'; $('#bOld').style.width = Math.min(100, no / TARGET * 100) + '%';
+  const pending = rows.length - done.length;
+  $('#progTag').textContent = pending ? `${pending} σε εκκρεμότητα` : '';
+  let note = '';
+  if(nf >= INTERIM && no >= INTERIM && (nf < TARGET || no < TARGET)) note = `Έφτασες τα ${INTERIM} + ${INTERIM}: ώρα για τον ενδιάμεσο έλεγχο.`;
+  else if(nf >= TARGET && no >= TARGET) note = 'Ολοκληρώθηκε το δείγμα για τον τελικό έλεγχο.';
+  else if(Math.abs(nf - no) >= 20) note = `Δώσε προτεραιότητα στο γκρουπ ${nf < no ? '≤12′' : '>12′'}.`;
+  $('#progNote').textContent = note;
+  $('#dsCount').textContent = rows.length;
+  const box = $('#list');
+  if(!rows.length){ box.innerHTML = '<div class="empty">Καμία καταγραφή.</div>'; return; }
+  const ordered = rows.map((r, i) => [r, i]).sort((a, b) => (a[0].goal_next === null ? 0 : 1) - (b[0].goal_next === null ? 0 : 1) || b[1] - a[1]);
+  box.innerHTML = ordered.slice(0, 30).map(([r, i]) => {
+    const g = r.group === 'le12' ? '≤12′' : '>12′';
+    const act = r.goal_next === null
+      ? `<button data-i="${i}" data-o="1">Γκολ</button><button data-i="${i}" data-o="0">Χωρίς γκολ</button>`
+      : `<span class="res" style="color:${r.goal_next ? 'var(--yes)' : 'var(--dim)'}">${r.goal_next ? 'Γκολ' : 'Χωρίς γκολ'}</span>
+         <button data-i="${i}" data-o="undo" style="flex:0">Αλλαγή</button>`;
+    return `<div class="row ${r.goal_next === null ? 'pending' : ''}">
+      <div class="row-top"><span class="teams">${esc(r.home_team || '—')} – ${esc(r.away_team || '—')}</span><span class="x" data-del="${i}" title="Διαγραφή">✕</span></div>
+      <div class="row-meta">${r.goals_h}-${r.goals_a} · ${r.B_min}′ · γκολ ${r.last_goal_min}′ (${g}) · over ${String(r.odds_over).replace('.', ',')} / under ${String(r.odds_under).replace('.', ',')}</div>
+      <div class="row-act">${act}</div></div>`;
+  }).join('') + (rows.length > 30 ? `<div class="empty">…και ${rows.length - 30} ακόμη</div>` : '');
+}
+$('#list').addEventListener('click', e => {
+  const t = e.target;
+  if(t.dataset.del !== undefined){
+    const r = rows[+t.dataset.del];
+    if(confirm(`Διαγραφή: ${r.home_team || ''} – ${r.away_team || ''};`)){ rows.splice(+t.dataset.del, 1); store(); render(); }
+    return;
+  }
+  if(t.dataset.o !== undefined){
+    const r = rows[+t.dataset.i];
+    r.goal_next = t.dataset.o === 'undo' ? null : +t.dataset.o;
+    store(); render();
+  }
+});
+
+// ---------- export / clear ----------
+const cell = (h, v) => { if(v === null || v === undefined) return ''; const s = String(v); return DECIMAL.has(h) ? s.replace('.', ',') : s; };
+function tsv(list){ return list.map(r => HEADER.map(h => cell(h, r[h])).join('\t')).join('\n'); }
+$('#copyAll').onclick = async () => {
+  const done = rows.filter(r => r.goal_next !== null);
+  if(!done.length){ $('#dsStatus').textContent = 'Δεν υπάρχουν ολοκληρωμένες καταγραφές.'; return; }
+  const text = tsv(done);
+  try{ await navigator.clipboard.writeText(text); $('#dsStatus').textContent = `Αντιγράφηκαν ${done.length} γραμμές. Paste στο Sheet.`; }
+  catch(e){
+    const ta = document.createElement('textarea'); ta.value = text;
+    ta.style.cssText = 'position:fixed;inset:10% 5%;width:90%;height:60%;z-index:9;font-size:12px';
+    document.body.appendChild(ta); ta.focus(); ta.select(); ta.onblur = () => ta.remove();
+    $('#dsStatus').textContent = 'Αντίγραψε χειροκίνητα από το πλαίσιο.';
+  }
+};
+$('#clearData').onclick = () => {
+  const done = rows.filter(r => r.goal_next !== null).length, pend = rows.length - done;
+  if(!rows.length){ $('#dsStatus').textContent = 'Δεν υπάρχουν δεδομένα.'; return; }
+  if(confirm(`Διαγραφή ${done} ολοκληρωμένων καταγραφών; Οι ${pend} σε εκκρεμότητα μένουν. Βεβαιώσου ότι τις πέρασες στο Sheet — δεν αναιρείται.`)){
+    rows = rows.filter(r => r.goal_next === null); store(); render();
+    $('#dsStatus').textContent = 'Οι ολοκληρωμένες καταγραφές διαγράφηκαν.';
+  }
+};
+
+load(); render(); update();
+</script>
+</body>
+</html>
